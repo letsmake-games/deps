@@ -15,7 +15,7 @@ setuptools.setup(
     description="Simple dependency management through git",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.com/blacktriangles/cpp/deps",
+    url="https://gitlab.com/blacktriangles/tools/deps",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=[

@@ -1,72 +1,87 @@
-#!/usr/bin/python3
-
 #
 # (C) BLACKTRIANGLES 2019
 # http://www.blacktriangles.com
 #
 
+from . import cprint
+from . import file as depsfile
 
-#
-# imports #####################################################################
-#
 import git
 import os
 import yaml
 
 #
+# fetch dependency ############################################################
+#
+
+def fetch_dependency(dirs, name, dep, loadedRepos=[]):
+    cprint.info('\t loading dep ', name, ' into ', dirs[0])
+
+    dir = dirs[0]
+    repoDir = os.path.join(dir, name)
+    origDir = os.path.join(dirs[-1], name)
+
+    # if we've already loaded this repo, print a string and make an empty
+    # directory
+    if dep['repo'] in loadedRepos:
+        repoDir = os.path.join(dirs[-1], name)
+        cprint.info('\t Already loaded ', dep['repo'], ' making placeholder folder in ', repoDir )
+        os.makedirs(repoDir)
+        return
+        
+    # configure our clone arguments, setting the location to clone to and the
+    # tag if it was passed to us
+    cloneArgs = [name]
+    if 'tag' in dep:
+        cloneArgs.extend(['--branch', dep['tag']])
+        
+    # clone the directory if it doesnt already exist, and checkout the
+    # requested commit if available
+    if not os.path.exists(repoDir):
+        git.Git(dir).clone(dep['repo'], *cloneArgs)
+        repo = git.Repo(repoDir)
+        if 'sha' in dep:
+            repo.git.checkout(dep['sha'])
+
+    if not os.path.exists(origDir):
+        os.makedirs(origDir)
+
+    loadedRepos.append(dep['repo'])
+
+#
 # load config #################################################################
 #
 
-rootDir = os.getcwd()
-loadedRepos = []
-
-def load_deps(dir, cloneDir=None):
-    config = None
-    depsPath = os.path.join(dir, 'deps.yml')
-    print(depsPath)
-    if not os.path.exists(depsPath):
+def load_deps(dir, cloneDirs=[], loadedRepos=[]):
+    config = depsfile.load_config(dir)
+    if config is None:
         return
-
-    with open(depsPath) as f:
-        yml = f.read();
-        config = yaml.load(yml)
     
-    if cloneDir is None:
-        cloneDir = os.path.join(dir, config["repo"]['cloneDir'])
+    cloneDir = os.path.join(dir, config['repo']['cloneDir']);
+    cloneDirs.append(cloneDir)
     
     if not os.path.exists(cloneDir):
         os.makedirs(cloneDir)
     
     #
-    # clone dependencies ##########################################################
+    # clone dependencies ######################################################
     #
     
     if not config is None and 'dependencies' in config:
         deps = config['dependencies']
         for name in deps:
-            repoDir = os.path.join(cloneDir, name)
-            print('\tloading dep', name, 'into', repoDir)
-            dep = deps[name]
-
-            if dep['repo'] in loadedRepos:
-                print('Already loaded', dep['repo'])
-                os.makedirs(repoDir)
-                return
-        
-            cloneArgs = [name]
-            if 'tag' in dep:
-                cloneArgs.extend(['--branch', dep['tag']])
-        
-            loadedRepos.append(dep['repo'])
-            if not os.path.exists(repoDir):
-                git.Git(cloneDir).clone(dep['repo'], *cloneArgs)
-
-            repo = git.Repo(repoDir)
-        
-            if 'sha' in dep:
-                repo.git.checkout(dep['sha'])
-
+            fetch_dependency(cloneDirs, name, deps[name], loadedRepos)
+            
+        # for each of our dependencies, check to see if we have any tracked
+        # dependencies, and handle them appropriately
         for name in deps:
-            load_deps(os.path.join(cloneDir,name), cloneDir)
+            load_deps(os.path.join(cloneDir,name), cloneDirs, loadedRepos)
 
-load_deps(rootDir)
+#
+# bootstrap ###################################################################
+#
+
+def bootstrap(dir):
+    cprint.info('bootstrapping ', dir)
+    depsfile.init_config(dir)
+    load_deps(dir)

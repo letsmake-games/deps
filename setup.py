@@ -17,9 +17,12 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://gitlab.com/blacktriangles/cpp/deps",
     packages=setuptools.find_packages(),
-    classifiers=[],
+    include_package_data=True,
     install_requires=[
+        "click",
         "gitpython",
-        "click"
+    ],
+    scripts=[
+        'bin/deps'
     ]
 )

@@ -1,0 +1,62 @@
+#!/usr/bin/python3
+
+#
+# (C) BLACKTRIANGLES 2019
+# http://www.blacktriangles.com/
+#
+
+import deps.bootstrap
+import deps.file
+import click
+import os
+
+#
+# main cli entrypoint #########################################################
+#
+
+@click.group()
+def cli():
+    pass
+
+#
+# bootstrap ###################################################################
+#
+
+@cli.command()
+def bootstrap():
+    cwd = os.getcwd()
+    deps.bootstrap.bootstrap(cwd)
+
+
+#
+# dep management ##############################################################
+#
+
+@cli.command()
+@click.argument('name')
+@click.argument('repo')
+@click.option('--sha', default=None, help="An optional commit sha to check out to.")
+@click.option('--tag', default=None, help="An optional tag to check out to.")
+def add(name, repo, sha, tag):
+    cwd = os.getcwd()
+    deps.file.add_dependency_to_file(cwd, name, repo, sha, tag)
+    deps.bootstrap.load_deps(cwd)
+
+#
+# -----------------------------------------------------------------------------
+#
+
+@cli.command()
+@click.argument('name')
+def remove(name):
+    cwd = os.getcwd()
+    deps.file.remove_dependency_from_file(cwd, name)
+
+
+#
+# entry point #################################################################
+#
+
+if (__name__ == '__main__'):
+    cli()
+

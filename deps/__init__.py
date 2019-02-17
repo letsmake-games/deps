@@ -1,1 +1,1 @@
-name = "deps"
+name = "dist"

@@ -5,6 +5,7 @@
 
 from . import cprint
 from . import file as depsfile
+from pathlib import Path
 
 import git
 import os
@@ -43,8 +44,11 @@ def fetch_dependency(dirs, name, dep, loadedRepos=[]):
         if 'sha' in dep:
             repo.git.checkout(dep['sha'])
 
+    # put an empty file in the deps directory, since we are moving them to
+    # the top level project
     if not os.path.exists(origDir):
         os.makedirs(origDir)
+        Path(os.path.join(origDir, 'CMakeLists.txt')).touch()
 
     loadedRepos.append(dep['repo'])
 
@@ -57,6 +61,9 @@ def load_deps(dir, cloneDirs=[], loadedRepos=[]):
     if config is None:
         return
     
+    if 'repo' not in config:
+        cprint.err('Could not find `repo` key in config', config)
+
     cloneDir = os.path.join(dir, config['repo']['cloneDir']);
     cloneDirs.append(cloneDir)
     

@@ -5,6 +5,7 @@
 
 from . import cprint
 from . import file as depsfile
+from . import project
 from pathlib import Path
 
 import git
@@ -56,7 +57,7 @@ def fetch_dependency(dirs, name, dep, loadedRepos=[]):
 # load config #################################################################
 #
 
-def load_deps(dir, cloneDirs=[], loadedRepos=[]):
+def load_deps(dir):
     config = depsfile.load_config(dir)
     if config is None:
         return

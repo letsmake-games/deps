@@ -5,8 +5,8 @@
 # http://www.blacktriangles.com/
 #
 
-import deps.bootstrap
 import deps.file
+import deps.project
 import click
 import os
 
@@ -25,8 +25,7 @@ def cli():
 @cli.command()
 def bootstrap():
     cwd = os.getcwd()
-    deps.bootstrap.bootstrap(cwd)
-
+    deps.project.Project(cwd).install()
 
 #
 # dep management ##############################################################
@@ -40,7 +39,7 @@ def bootstrap():
 def add(name, repo, sha, tag):
     cwd = os.getcwd()
     deps.file.add_dependency_to_file(cwd, name, repo, sha, tag)
-    deps.bootstrap.load_deps(cwd)
+    deps.project.Project(cwd).install()
 
 #
 # -----------------------------------------------------------------------------
@@ -51,6 +50,7 @@ def add(name, repo, sha, tag):
 def remove(name):
     cwd = os.getcwd()
     deps.file.remove_dependency_from_file(cwd, name)
+    deps.project.Project(cwd).install()
 
 
 #

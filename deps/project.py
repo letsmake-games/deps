@@ -22,6 +22,9 @@ class Dependency:
     # members #################################################################
     #
 
+    # the root directory of this dependency
+    directory = None
+
     # (required) the name of this dependency
     name = None
 
@@ -50,6 +53,8 @@ class Dependency:
         if self.tag:
             result.extend(['--branch', self.tag])
 
+        return result
+
     #
     # constructor #############################################################
     #
@@ -58,7 +63,7 @@ class Dependency:
         self.name = name
         self.project = project
         if 'repo' not in yml:
-            raise ValueException('Dependency %s does not have a value for repo' % (name))
+            raise ValueError('Dependency %s does not have a value for repo' % (name))
 
         self.repo = yml['repo']
         if 'tag' in yml:
@@ -75,16 +80,41 @@ class Dependency:
     #
     
     def install(self):
+        cprint.info('\tinstalling: ', self.name)
         cloneArgs = self.cloneArgs
-        git.Git(self.project.installDirectory).clone(self.repo, *cloneArgs)
-        repoDir = os.path.join(self.project.installDirectory, self.name)
-        repo = git.Repo(repoDir)
+        self.directory = os.path.join(self.project.installDirectory, self.name)
+
+        if not os.path.exists(self.directory):
+            git.Git(self.project.installDirectory).clone(self.repo, *cloneArgs)
+
+        repo = git.Repo(self.directory)
         if self.sha:
             repo.git.checkout(self.sha)
 
-        if self.patchName:
+        if self.patch:
             patchPath = os.path.join(self.project.patchDirectory, self.patch)
             repo.git.apply([patchPath])
+
+        # if we are a subproject, we should create placeholders so we dont
+        # break subproject cmake project
+        subprojDir = os.path.join(self.project.config.installDir, self.name)
+        if self.directory != subprojDir and not os.path.exists(subprojDir):
+            os.makedirs(subprojDir)
+            Path(os.path.join(subprojDir,'CMakeLists.txt')).touch()
+
+    #
+    # -------------------------------------------------------------------------
+    #
+
+    def getProject(self):
+        if not self.directory:
+            return None
+
+        config = dfile.load_config(self.directory)
+        if not config:
+            return None
+
+        return Project(self.directory, self.project)
 
     #
     # end class ###############################################################
@@ -121,13 +151,13 @@ class ProjectConfig:
         self.yml = ymlConfig
         self.rootDir = dir
         if 'installDir' not in self.yml:
-            raise ValueException('Project configuration does not contain an installDir')
+            raise ValueError('Project configuration does not contain an installDir')
 
         if 'patchDir' not in self.yml:
-            raise ValueException('Project configuration does not contain a patchDir')
+            raise ValueError('Project configuration does not contain a patchDir')
 
-        self.installDir = os.path.join(self.rootDir, self.yml['installDir']
-        self.patchDir = os.path.join(self.rootDir, self.yml['patchDir']
+        self.installDir = os.path.join(self.rootDir, self.yml['installDir'])
+        self.patchDir = os.path.join(self.rootDir, self.yml['patchDir'])
 
     #
     # public methods ##########################################################
@@ -155,6 +185,9 @@ class Project:
 
     # the root project if this is a sub-dependency, otherwise None
     parent = None
+
+    # projects contained in this project
+    subprojects = []
 
     # the configuration for this project
     config = None
@@ -203,38 +236,32 @@ class Project:
     #
 
     def __init__(self, directory, parent=None):
+        cprint.warn(directory)
         self.directory = os.path.realpath(directory)
         self.yml = dfile.load_config(self.directory)
         self.parent = parent
 
         if 'project' not in self.yml:
-            raise ValueException('deps.yml file does not have a project section', self.directory)
+            raise ValueError('deps.yml file does not have a project section', self.directory)
 
-        self.config = ProjectConfig(self.yml['project'])
+        self.config = ProjectConfig(directory, self.yml['project'])
 
     #
     # public methods ##########################################################
     #
 
     def install(self):
+        cprint.info('installing ', self.directory)
         if 'dependencies' not in self.yml:
             cprint.warn('No dependencies found in project', self.directory)
 
         deps = self.yml['dependencies']
         for name in deps:
-            self.installDependency(name, deps[name])
-
-    #
-    # -------------------------------------------------------------------------
-    #
-
-    def installDependency(self, name, yml):
-        dep = Depencency(name, self, yml)
-        if not self.isInstalled(dep):
-            dep.install()
-            if self.parent:
-                self.parent.dependencies.append(dep)
-            self.dependencies.append(dep)
+            dep = self._installDependency(name, deps[name])
+            subproject = dep.getProject()
+            if subproject is not None:
+                subproject.install()
+                self.subprojects.append(subproject)
 
     #
     # -------------------------------------------------------------------------
@@ -250,6 +277,20 @@ class Project:
             if check.repo == dep.repo:
                 return True
         return False
+
+    #
+    # private methods #########################################################
+    #
+
+    def _installDependency(self, name, yml):
+        dep = Dependency(name, self, yml)
+        if not self.isInstalled(dep):
+            dep.install()
+            if self.parent:
+                self.parent.dependencies.append(dep)
+            self.dependencies.append(dep)
+            return dep
+
 
     #
     # end class ###############################################################

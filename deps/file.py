@@ -22,8 +22,9 @@ def init_config(dir):
     configPath = make_config_path(dir)
     if not os.path.exists(configPath):
         config = {
-            'repo': {
-                'cloneDir': 'extern'
+            'project': {
+                'installDir': 'extern',
+                'patchDir': 'patches',
             },
             'dependencies': {}
         }

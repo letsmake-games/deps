@@ -37,9 +37,6 @@ class Dependency:
     # (optional) the commit sha this dependency is set to
     sha = None
 
-    # (optional) the patch name to apply after pulling this dependency
-    patch = None
-
     # (required) the root project that this dependency was pulled into
     project = None
 
@@ -72,9 +69,6 @@ class Dependency:
         if 'sha' in yml:
             self.sha = yml['sha']
 
-        if 'patch' in yml:
-            self.patch = yml['patch']
-
     #
     # public methods ##########################################################
     #
@@ -84,16 +78,21 @@ class Dependency:
         cloneArgs = self.cloneArgs
         self.directory = os.path.join(self.project.installDirectory, self.name)
 
+        fresh = False
         if not os.path.exists(self.directory):
             git.Git(self.project.installDirectory).clone(self.repo, *cloneArgs)
+            fresh = True
 
         repo = git.Repo(self.directory)
         if self.sha:
             repo.git.checkout(self.sha)
+            fresh = True
 
-        if self.patch:
-            patchPath = os.path.join(self.project.patchDirectory, self.patch)
-            repo.git.apply([patchPath])
+        if fresh:
+            patchPath = os.path.join(self.project.patchDirectory, self.name)
+            if os.path.exists(patchPath):
+                cprint.info('\t\tpatch found at ', patchPath)
+                repo.git.apply([patchPath])
 
         # if we are a subproject, we should create placeholders so we dont
         # break subproject cmake project
@@ -226,9 +225,6 @@ class Project:
 
     @property
     def patchDirectory(self):
-        if self.parent:
-            return self.parent.patchDirectory
-
         return os.path.join(self.rootDirectory, self.config.patchDir)
 
     #

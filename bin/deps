@@ -6,6 +6,7 @@
 #
 
 import deps.file
+import deps.patch
 import deps.project
 import click
 import os
@@ -51,6 +52,20 @@ def remove(name):
     cwd = os.getcwd()
     deps.file.remove_dependency_from_file(cwd, name)
     deps.project.Project(cwd).install()
+
+#
+# patches #####################################################################
+#
+
+@cli.group()
+def patch():
+    pass
+
+@patch.command('create')
+@click.argument('name')
+def createPatch(name):
+    cwd = os.getcwd()
+    deps.patch.create_patch(cwd, name)
 
 
 #

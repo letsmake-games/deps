@@ -24,7 +24,7 @@ def cli():
 #
 
 @cli.command()
-def setup():
+def install():
     cwd = os.getcwd()
     deps.project.Project(cwd).install()
 

@@ -32,7 +32,7 @@ def create_patch(dir, name):
         cprint.err('could not load repo at ', repoPath)
         return
 
-    diff = repo.git.diff()
+    diff = repo.git.diff(create_patch=True)
 
     if not os.path.exists(config.patchDir):
         os.makedirs(config.patchDir)

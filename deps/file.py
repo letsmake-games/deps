@@ -63,17 +63,19 @@ def save_config(dir, config):
 # add dependency ##############################################################
 #
 
-def add_dependency(config, name, repo, sha=None, tag=None):
+def add_dependency(config, name, repo, sha=None, tag=None, cmds=None):
     deps = config['dependencies']
     if deps is None:
         deps = {}
 
     if not name in deps:
         entry = { 'repo': repo }
-        if not sha is None:
+        if sha is not None:
             entry['sha'] = sha
-        if not tag is None:
+        if tag is not None:
             entry['tag'] = tag
+        if cmds is not None:
+            entry['cmds'] = cmds
 
         deps[name] = entry
 
@@ -108,4 +110,3 @@ def remove_dependency_from_file(dir, name):
     if not config is None:
         config = remove_dependency(config, name)
         save_config(dir, config)
-

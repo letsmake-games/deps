@@ -9,6 +9,7 @@ from . import file as dfile
 from pathlib import Path
 import git
 import os
+import subprocess
 import yaml
 
 #
@@ -40,6 +41,9 @@ class Dependency:
     # (required) the root project that this dependency was pulled into
     project = None
 
+    # (required) a list of commands to execute afer syncing this repo
+    commands = []
+
     #
     # properties ##############################################################
     #
@@ -69,6 +73,9 @@ class Dependency:
         if 'sha' in yml:
             self.sha = yml['sha']
 
+        if 'cmds' in yml:
+            self.commands = yml['cmds']
+
     #
     # public methods ##########################################################
     #
@@ -89,10 +96,26 @@ class Dependency:
             fresh = True
 
         if fresh:
+            # apply the patch
             patchPath = os.path.join(self.project.patchDirectory, self.name)
             if os.path.exists(patchPath):
                 cprint.info('\t\tpatch found at ', patchPath)
                 repo.git.apply([patchPath])
+
+        # execute the commands
+        if len(self.commands) > 0:
+            print('\t\tHas commands')
+            for cmd in self.commands:
+                cmda = cmd.split(' ')
+                print('##### Executing: %s' % (cmd))
+                try:
+                    output = subprocess.check_call(cmda)
+                    print(output)
+                except subprocess.CalledProcessError as e:
+                    print('##### FAILED #####\n %s' % (' '.join(cmd)))
+
+                print('')
+
 
         # if we are a subproject, we should create placeholders so we dont
         # break subproject cmake project
@@ -286,7 +309,6 @@ class Project:
                 self.parent.dependencies.append(dep)
             self.dependencies.append(dep)
             return dep
-
 
     #
     # end class ###############################################################

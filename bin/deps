@@ -24,9 +24,11 @@ def cli():
 #
 
 @cli.command()
-def install():
+@click.option('--force-commands/--no-force-commands', '-c', 'force_cmd', required=False,
+              default=False, show_default=True, help='Rerun commands even if the repo was up to date')
+def install(force_cmd):
     cwd = os.getcwd()
-    deps.project.Project(cwd).install()
+    deps.project.Project(cwd).install(force_cmd)
 
 #
 # dep management ##############################################################

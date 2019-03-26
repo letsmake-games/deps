@@ -9,6 +9,7 @@ from . import file as dfile
 from pathlib import Path
 import git
 import os
+import platform
 import subprocess
 import yaml
 
@@ -80,7 +81,7 @@ class Dependency:
     # public methods ##########################################################
     #
     
-    def install(self):
+    def install(self, force_cmd):
         cprint.info('\tinstalling: ', self.name)
         cloneArgs = self.cloneArgs
         self.directory = os.path.join(self.project.installDirectory, self.name)
@@ -102,19 +103,25 @@ class Dependency:
                 cprint.info('\t\tpatch found at ', patchPath)
                 repo.git.apply([patchPath])
 
-        # execute the commands
-        if len(self.commands) > 0:
-            print('\t\tHas commands')
-            for cmd in self.commands:
-                cmda = cmd.split(' ')
-                print('##### Executing: %s' % (cmd))
-                try:
-                    output = subprocess.check_call(cmda)
-                    print(output)
-                except subprocess.CalledProcessError as e:
-                    print('##### FAILED #####\n %s' % (' '.join(cmd)))
+        if fresh or force_cmd:
+            #
+            # execute the commands
+            #
+            if len(self.commands) > 0:
+                platform_name = platform.system().lower()
+                if platform_name in self.commands:
+                    cwd = self.directory
+                    cmd_list = self.commands[platform_name.lower()]
+                    for cmd in cmd_list:
+                        cmda = cmd.split(' ')
+                        print('##### Executing: %s' % (cmd))
+                        try:
+                            output = subprocess.check_call(cmda, cwd=cwd)
+                            print(output)
+                        except subprocess.CalledProcessError as e:
+                            print('##### FAILED #####\n %s' % (' '.join(cmd)))
 
-                print('')
+                        print('')
 
 
         # if we are a subproject, we should create placeholders so we dont
@@ -269,17 +276,17 @@ class Project:
     # public methods ##########################################################
     #
 
-    def install(self):
+    def install(self, force_cmd):
         cprint.info('installing ', self.directory)
         if 'dependencies' not in self.yml:
             cprint.warn('No dependencies found in project', self.directory)
 
         deps = self.yml['dependencies']
         for name in deps:
-            dep = self._installDependency(name, deps[name])
+            dep = self._installDependency(name, deps[name], force_cmd)
             subproject = dep.getProject()
             if subproject is not None:
-                subproject.install()
+                subproject.install(force_cmd)
                 self.subprojects.append(subproject)
 
     #
@@ -301,10 +308,10 @@ class Project:
     # private methods #########################################################
     #
 
-    def _installDependency(self, name, yml):
+    def _installDependency(self, name, yml, force_cmd):
         dep = Dependency(name, self, yml)
         if not self.isInstalled(dep):
-            dep.install()
+            dep.install(force_cmd)
             if self.parent:
                 self.parent.dependencies.append(dep)
             self.dependencies.append(dep)

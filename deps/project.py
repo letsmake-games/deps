@@ -163,7 +163,6 @@ class ProjectConfig:
     # the root path of the project
     rootDir = None
 
-    # the path dependencies are installed into
     installDir = None
 
     # the path patches are stored for this project
@@ -284,10 +283,11 @@ class Project:
         deps = self.yml['dependencies']
         for name in deps:
             dep = self._installDependency(name, deps[name], force_cmd)
-            subproject = dep.getProject()
-            if subproject is not None:
-                subproject.install(force_cmd)
-                self.subprojects.append(subproject)
+            if dep or force_cmd:
+                subproject = dep.getProject()
+                if subproject is not None:
+                    subproject.install(force_cmd)
+                    self.subprojects.append(subproject)
 
     #
     # -------------------------------------------------------------------------

@@ -42,7 +42,7 @@ def install(force_cmd):
 def add(name, repo, sha, tag):
     cwd = os.getcwd()
     deps.file.add_dependency_to_file(cwd, name, repo, sha, tag)
-    deps.project.Project(cwd).install()
+    deps.project.Project(cwd).install(False)
 
 #
 # -----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ def add(name, repo, sha, tag):
 def remove(name):
     cwd = os.getcwd()
     deps.file.remove_dependency_from_file(cwd, name)
-    deps.project.Project(cwd).install()
+    deps.project.Project(cwd).install(False)
 
 #
 # patches #####################################################################

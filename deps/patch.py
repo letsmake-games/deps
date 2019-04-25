@@ -15,6 +15,7 @@ import os
 #
 
 def create_patch(dir, name):
+    cprint.info('patching ', name, ' in ', dir)
     config = dfile.load_config(dir)
     if not config:
         cprint.err('could not load config at ', dir)
@@ -32,7 +33,8 @@ def create_patch(dir, name):
         cprint.err('could not load repo at ', repoPath)
         return
 
-    diff = repo.git.diff(create_patch=True)
+    repo.git.add(all=True)
+    diff = repo.git.diff(staged=True)
 
     if not os.path.exists(config.patchDir):
         os.makedirs(config.patchDir)

@@ -45,7 +45,7 @@ def load_config(dir, create=False):
 
     with open(configPath, 'r') as f:
         ymlString = f.read()
-        config = yaml.load(ymlString)
+        config = yaml.safe_load(ymlString)
 
     return config
 

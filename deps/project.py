@@ -11,7 +11,6 @@ import git
 import os
 import platform
 import subprocess
-import yaml
 
 #
 # dependency class ############################################################
@@ -80,7 +79,7 @@ class Dependency:
     #
     # public methods ##########################################################
     #
-    
+
     def install(self, force_cmd):
         cprint.info('\tinstalling: ', self.name)
         cloneArgs = self.cloneArgs

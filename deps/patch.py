@@ -36,9 +36,21 @@ def create_patch(dir, name):
     repo.git.add(all=True)
     diff = repo.git.diff(staged=True)
 
-    if not os.path.exists(config.patchDir):
-        os.makedirs(config.patchDir)
+    if diff:
+        cprint.info('\t\tcreating patch for ', name)
+        if not os.path.exists(config.patchDir):
+            os.makedirs(config.patchDir)
 
-    patchPath = os.path.join(config.patchDir, name)
-    with open(patchPath, 'w') as f:
-        f.write(diff+'\n')
+        patchPath = os.path.join(config.patchDir, name)
+        with open(patchPath, 'w') as f:
+            f.write(diff+'\n')
+
+#
+# scan for diffs and create patches as necessary ##############################
+#
+
+def create_all_patches(dir, project):
+    cprint.info('scanning for diffs...')
+    for key in project.yml['dependencies']:
+        create_patch(dir, key)
+

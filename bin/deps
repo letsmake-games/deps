@@ -69,6 +69,10 @@ def createPatch(name):
     cwd = os.getcwd()
     deps.patch.create_patch(cwd, name)
 
+@patch.command('create-all')
+def createAllPatches():
+    cwd = os.getcwd()
+    deps.patch.create_all_patches(cwd, deps.project.Project(cwd))
 
 #
 # entry point #################################################################
